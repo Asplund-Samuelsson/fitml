@@ -21,35 +21,60 @@ y_a = np.array([int(l.rstrip()) for l in open(y_antibiotics_file).readlines()])
 n = X.shape[0]
 
 # Split into training and test data
-i_train   = np.array(random.sample(range(0, n), int(n/2)))
-i_test    = np.array(list(set(range(0, n)) - set(i_train)))
+def split_data(X, y, split=0.5):
+    # Determine size of training data to use
+    N = len(y)
+    n = min(sum(y == 1), sum(y == 0))
+    n_train = int(n*split)
+    n_test = n - n_train
+    # Randomly select positive training examples
+    i_train_pos = np.array(
+        random.sample(list(np.array(range(0, N))[y == 1]), n_train)
+    )
+    # Randomly select negative training examples
+    i_train_neg = np.array(
+        random.sample(list(np.array(range(0, N))[y == 0]), n_train)
+    )
+    # Randomly select positive test examples not in training data
+    i_test_pos = np.array(
+        random.sample(
+            list(set(np.array(range(0, N))[y == 1]) - set(i_train_pos)), n_test
+        )
+    )
+    # Randomly select negative test examples not in training data
+    i_test_neg = np.array(
+        random.sample(
+            list(set(np.array(range(0, N))[y == 0]) - set(i_train_neg)), n_test
+        )
+    )
+    # Concatenate to training and test datasets
+    i_train = np.concatenate((i_train_pos, i_train_neg))
+    i_test = np.concatenate((i_test_pos, i_test_neg))
+    # Subset X to training and test datasets
+    X_train = X[i_train]
+    X_test = X[i_test]
+    # Subset y to training and test datasets
+    y_train = y[i_train]
+    y_test = y[i_test]
+    # Return the data
+    return X_train, y_train, X_test, y_test
 
-X_train   = X[i_train]
-X_test    = X[i_test]
-
-y_m_train = y_m[i_train]
-y_a_train = y_a[i_train]
-
-y_m_test  = y_m[i_test]
-y_a_test  = y_a[i_test]
+X_train_m, y_m_train, X_test_m, y_m_test = split_data(X, y_m)
+X_train_a, y_a_train, X_test_a, y_a_test = split_data(X, y_a)
 
 # Train SVM
-classifier_m = svm.SVC()
-classifier_m.fit(X_train, y_m_train)
+classifier_m = svm.SVC(C=10.0)
+classifier_m.fit(X_train_m, y_m_train)
 
-classifier_a = svm.SVC()
-classifier_a.fit(X_train, y_a_train)
+classifier_a = svm.SVC(C=10.0)
+classifier_a.fit(X_train_a, y_a_train)
 
 # Assess performance of classifier
 
 # ...on training data:
-m_acc_train = classifier_m.score(X_train, y_m_train) # 93.5%
-a_acc_train = classifier_a.score(X_train, y_a_train) # 89.8%
+m_acc_train = classifier_m.score(X_train_m, y_m_train)
+a_acc_train = classifier_a.score(X_train_a, y_a_train)
 
 # ...on test data:
-m_acc_test  = classifier_m.score(X_test, y_m_test) # 93.6%
-a_acc_test  = classifier_a.score(X_test, y_a_test) # 87.3%
-
-# This should be compared to the accuracy by chance
-m_acc_chance = 1 - sum(y_m) / len(y_m) # 92.9%
-a_acc_chance = 1 - sum(y_a) / len(y_a) # 85.2%
+m_acc_test  = classifier_m.score(X_test_m, y_m_test)
+a_acc_test  = classifier_a.score(X_test_a, y_a_test)
