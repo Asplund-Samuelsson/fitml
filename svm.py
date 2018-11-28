@@ -14,13 +14,18 @@ X = np.array([
     for line in open(X_file).readlines()
 ])
 
-y_m = np.array([int(l.rstrip()) for l in open(y_metal_file).readlines()])
-y_a = np.array([int(l.rstrip()) for l in open(y_antibiotics_file).readlines()])
+y1 = np.array([int(l.rstrip()) for l in open(y_metal_file).readlines()])
+y2 = np.array([int(l.rstrip()) for l in open(y_antibiotics_file).readlines()])
 
 # Determine number of samples
 n = X.shape[0]
 
-# Split into training and test data
+# Print a header
+print("\t".join([
+    "classifier", "sample", "split", "C", "gamma", "train", "test", "cross"
+]))
+
+# Define function for splitting data into training and test sets
 def split_data(X, y, split=0.5):
     # Determine size of training data to use
     N = len(y)
@@ -59,22 +64,36 @@ def split_data(X, y, split=0.5):
     # Return the data
     return X_train, y_train, X_test, y_test
 
-X_train_m, y_m_train, X_test_m, y_m_test = split_data(X, y_m)
-X_train_a, y_a_train, X_test_a, y_a_test = split_data(X, y_a)
-
-# Train SVM
-classifier_m = svm.SVC(C=10.0)
-classifier_m.fit(X_train_m, y_m_train)
-
-classifier_a = svm.SVC(C=10.0)
-classifier_a.fit(X_train_a, y_a_train)
-
-# Assess performance of classifier
-
-# ...on training data:
-m_acc_train = classifier_m.score(X_train_m, y_m_train)
-a_acc_train = classifier_a.score(X_train_a, y_a_train)
-
-# ...on test data:
-m_acc_test  = classifier_m.score(X_test_m, y_m_test)
-a_acc_test  = classifier_a.score(X_test_a, y_a_test)
+# Iterate over splits
+for split in [0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8]:
+    # Iterate over C values
+    for C in [0.001, 0.01, 0.1, 1, 10, 100, 1000]:
+        # Iterate over gamma values
+        for gamma in [0.0001, 0.001, 0.01, 0.1, 1, 10, 100]:
+            # Iterate over samples
+            for n in range(1, 11):
+                # Split data
+                X1_train, y1_train, X1_test, y1_test = split_data(X, y1, split)
+                X2_train, y2_train, X2_test, y2_test = split_data(X, y2, split)
+                # Train SVM classifiers
+                classifier1 = svm.SVC(C=C, gamma=gamma).fit(X1_train, y1_train)
+                classifier2 = svm.SVC(C=C, gamma=gamma).fit(X2_train, y2_train)
+                # Assess performance...
+                # ...on training data:
+                acc_train1 = classifier1.score(X1_train, y1_train)
+                acc_train2 = classifier2.score(X2_train, y2_train)
+                # ...on test data:
+                acc_test1  = classifier1.score(X1_test, y1_test)
+                acc_test2  = classifier2.score(X2_test, y2_test)
+                # ...on the other test data:
+                acc_cross1 = classifier1.score(X2_test, y2_test)
+                acc_cross2 = classifier2.score(X1_test, y1_test)
+                # Print performance
+                print("\t".join([str(x) for x in [
+                    "metal", n, split, C, gamma,
+                    acc_train1, acc_test1, acc_cross1
+                ]]))
+                print("\t".join([str(x) for x in [
+                    "antibiotics", n, split, C, gamma,
+                    acc_train2, acc_test2, acc_cross2
+                ]]))
