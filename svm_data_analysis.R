@@ -16,6 +16,15 @@ svm_avg = svm %>% group_by(classifier, split, C, gamma) %>% summarise(
     cross_avg = mean(cross), cross_sd = sd(cross)
   )
 
+# Find the best accuracies
+best_svm = svm_avg %>% arrange(-test_avg, classifier) %>%
+  group_by(classifier) %>% slice(1:10)
+
+write_tsv(
+  best_svm,
+  "/home/johannes/proj/crse/results/2018-12-03/fitml_best_svm_parameters.tab"
+)
+
 # Reshape data
 svm_avg = gather(svm_avg, variable, value, -classifier, -split, -gamma, -C) %>%
   mutate(
